@@ -1,1 +1,5 @@
-# Capstone_project
+# SmartFactory
+
+### 한이음 드림업 프로젝트 
+---
+### IMU 고장 진단 및 자율주행 기반 스마트 팩토리
