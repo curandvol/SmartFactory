@@ -1,0 +1,108 @@
+import yaml
+from PIL import Image # Pillow 라이브러리 사용
+import numpy as np
+
+def map_to_grid(yaml_file_path, pgm_file_path):
+    """
+    ROS 맵 파일(.yaml, .pgm)을 읽어 2D 그리드 배열로 변환합니다.
+
+    Args:
+        yaml_file_path (str): YAML 파일 경로
+        pgm_file_path (str): PGM 파일 경로
+
+    Returns:
+        numpy.ndarray: 2D 그리드 배열. 0: free, 1: occupied, -1: unknown
+                       None: 파일 읽기 실패 시
+    """
+    try:
+        # 1. YAML 파일 읽기 (옵션: 해상도나 원점 정보가 필요할 경우)
+        with open(yaml_file_path, 'r') as f:
+            map_metadata = yaml.safe_load(f)
+            resolution = map_metadata.get('resolution')
+            origin = map_metadata.get('origin')
+            occupied_thresh_yaml = map_metadata.get('occupied_thresh', 0.65) # YAML에 명시된 값
+            free_thresh_yaml = map_metadata.get('free_thresh', 0.196) # YAML에 명시된 값
+
+        print(f"Map Resolution: {resolution} m/pixel")
+        print(f"Map Origin: {origin}")
+
+        # 2. PGM 이미지 파일 읽기
+        map_image = Image.open(pgm_file_path)
+        # NumPy 배열로 변환 (이미지가 흑백이므로 2D 배열이 됨)
+        map_data_raw = np.array(map_image)
+
+        height, width = map_data_raw.shape
+        grid_map = np.zeros((height, width), dtype=int)
+
+        # 3. 픽셀 값을 기준으로 그리드 값 할당
+        # ROS map_server에서 생성된 PGM 파일의 일반적인 값:
+        # - 0: 점유 (occupied)
+        # - 254 (또는 255): 비점유 (free)
+        # - 205: 알 수 없음 (unknown)
+        # 이 값들은 occupied_thresh, free_thresh와 연관되어 PGM으로 변환됩니다.
+        # PGM 값은 (1.0 - p) * 255 형태로 계산될 수 있으며, p는 점유 확률입니다.
+        # 따라서 occupied_thresh = 0.65 일때, p > 0.65 면 점유. (1-0.65)*255 = 89.25. 즉, 89보다 작은 값이 점유. (검은색 = 0)
+        # free_thresh = 0.196 일때, p < 0.196 면 비점유. (1-0.196)*255 = 205.02. 즉, 205보다 큰 값이 비점유. (흰색 = 254/255)
+
+        # 일반적인 PGM 값 매핑 (ROS에서 통용되는 방식)
+        occupied_value_pgm = 0  # 검은색 근처
+        free_value_pgm = 254    # 흰색 근처 (255일 수도 있음)
+        unknown_value_pgm = 205 # 회색 근처
+
+        for r in range(height):
+            for c in range(width):
+                pixel_value = map_data_raw[r, c]
+                if pixel_value < 100:  # 점유 (검은색에 가까움, 임계값은 PGM 생성 방식에 따라 조정)
+                    grid_map[r, c] = 1  # 점유 (Occupied)
+                elif pixel_value > 230:  # 비점유 (흰색에 가까움)
+                    grid_map[r, c] = 0  # 비점유 (Free)
+                else: # 그 외 (회색 영역)
+                    grid_map[r, c] = -1 # 알 수 없음 (Unknown)
+
+        # OpenCV를 사용한다면:
+        # import cv2
+        # map_data_raw_cv = cv2.imread(pgm_file_path, cv2.IMREAD_GRAYSCALE)
+        # # 이후 로직은 Pillow 사용 시와 유사
+
+        return grid_map
+
+    except FileNotFoundError:
+        print(f"오류: 파일 경로를 확인하세요. YAML: {yaml_file_path}, PGM: {pgm_file_path}")
+        return None
+    except Exception as e:
+        print(f"맵 변환 중 오류 발생: {e}")
+        return None
+
+if __name__ == '__main__':
+    # 사용자가 저장한 맵 파일 경로로 수정하세요.
+    yaml_path = '/home/seongunkim/sample1.yaml'  # ~ 대신 실제 절대 경로 사용 권장
+    pgm_path = ''    # 예: '/home/your_username/my_map.yaml'
+
+    # 사용자 홈 디렉토리 경로 확장
+    import os
+    yaml_path = os.path.expanduser(yaml_path)
+    pgm_path = os.path.expanduser(pgm_path)
+
+    if not os.path.exists(yaml_path):
+        print(f"YAML 파일이 존재하지 않습니다: {yaml_path}")
+    if not os.path.exists(pgm_path):
+        print(f"PGM 파일이 존재하지 않습니다: {pgm_path}")
+
+    if os.path.exists(yaml_path) and os.path.exists(pgm_path):
+        grid = map_to_grid(yaml_path, pgm_path)
+
+        if grid is not None:
+            print("Grid Map 생성 완료!")
+            print(f"Grid 형태: {grid.shape}")
+            # print("Grid 내용 (일부):")
+            # print(grid[0:10, 0:10]) # 예시로 일부만 출력
+
+            # 그리드 맵 활용 (예: 특정 위치 값 확인)
+            # 실제 맵의 좌표와 그리드 인덱스 간 변환은 해상도(resolution)와 원점(origin)을 고려해야 합니다.
+            # 여기서는 단순 배열로 변환된 것을 보여줍니다.
+
+            # (선택) 그리드 맵을 텍스트 파일 등으로 저장
+            # np.savetxt("grid_map.txt", grid, fmt='%d')
+            # print("Grid map saved to grid_map.txt")
+    else:
+        print("맵 파일 경로를 확인하고 다시 시도해주세요.")
