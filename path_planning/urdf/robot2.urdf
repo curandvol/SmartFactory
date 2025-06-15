@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<robot name="robot2">
+
+  <!-- odom 프레임 -->
+  <link name="odom"/>
+
+  <!-- base_link 프레임 -->
+  <link name="base_link">
+    <visual>
+      <geometry>
+        <box size="0.3 0.3 0.1"/>
+      </geometry>
+      <material name="red">
+        <color rgba="1 0 0 1"/>
+      </material>
+    </visual>
+  </link>
+
+  <!-- odom → base_link 고정 연결 -->
+  <joint name="odom_to_base" type="fixed">
+    <parent link="odom"/>
+    <child link="base_link"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+
+</robot>
