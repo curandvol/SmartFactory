@@ -3,43 +3,25 @@
   <node pkg="map_server" type="map_server" name="map_server"
         args="$(find path_planning)/maps/slam_maps/it2_last.yaml" />
 
-  <!-- grid.npy 자동 생성 노드 -->
-  <node pkg="path_planning" type="pgm_to_grid.py" name="generate_grid" output="screen"
-        args="--pgm $(find path_planning)/maps/slam_maps/it2_last.pgm 
-              --yaml $(find path_planning)/maps/slam_maps/it2_last.yaml 
-              --output $(find path_planning)/maps/grid.npy"
-        respawn="false" />
-
   <!-- Central Path Planner -->
   <node pkg="path_planning" type="path_planner_node.py" name="path_planner" output="screen">
     <param name="grid_path" value="$(find path_planning)/maps/grid.npy" />
   </node>
 
-  <!-- Robot 1 Group -->
+
+  <!-- Robot 1 -->
   <group ns="robot_1">
-    <!-- URDF + TF -->
-    <param name="robot_description" textfile="$(find path_planning)/urdf/robot1.urdf" />
-    <node name="rsp1" pkg="robot_state_publisher" type="robot_state_publisher" output="screen">
-      <param name="publish_frequency" value="30.0" />
-    </node>
-
-    <!-- Path Follower -->
-    <node name="follower1" pkg="path_planning" type="path_follower_node.py" output="screen">
-      <param name="robot_id" value="robot_1" />
-    </node>
+    <param name="robot_description" textfile="$(find path_planning)/urdf/robot_1.urdf" />
+    <node name="rsp1" pkg="robot_state_publisher" type="robot_state_publisher" output="screen"/>
   </group>
 
-  <!-- Robot 2 Group -->
+  <!-- Robot 2 -->
   <group ns="robot_2">
-    <!-- URDF + TF -->
-    <param name="robot_description" textfile="$(find path_planning)/urdf/robot2.urdf" />
-    <node name="rsp2" pkg="robot_state_publisher" type="robot_state_publisher" output="screen">
-      <param name="publish_frequency" value="30.0" />
-    </node>
-
-    <!-- Path Follower -->
-    <node name="follower2" pkg="path_planning" type="path_follower_node.py" output="screen">
-      <param name="robot_id" value="robot_2" />
-    </node>
+    <param name="robot_description" textfile="$(find path_planning)/urdf/robot_2.urdf" />
+    <node name="rsp2" pkg="robot_state_publisher" type="robot_state_publisher" output="screen"/>
   </group>
+
+  <!-- RViz -->
+  <node name="rviz" pkg="rviz" type="rviz"
+        args="-d $(find path_planning)/rviz/multi_robot_debug.rviz" output="screen"/>
 </launch>
