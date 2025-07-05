@@ -1,0 +1,2 @@
+path_planning
+-DCATKIN_DEVEL_PREFIX=/home/seongunkim/SmartFactory/devel -DCMAKE_INSTALL_PREFIX=/home/seongunkim/SmartFactory/install -G Unix Makefiles
