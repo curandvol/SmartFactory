@@ -1,8 +1,8 @@
-# Install script for directory: /home/seongunkim/SmartFactory/src/path_planning
+# Install script for directory: /home/yujin/smartfactory_ws/src/path_planning
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
-  set(CMAKE_INSTALL_PREFIX "/home/seongunkim/SmartFactory/install")
+  set(CMAKE_INSTALL_PREFIX "/home/yujin/smartfactory_ws/install")
 endif()
 string(REGEX REPLACE "/$" "" CMAKE_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}")
 
@@ -38,17 +38,17 @@ if(NOT DEFINED CMAKE_CROSSCOMPILING)
 endif()
 
 if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_COMPONENT)
-  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/pkgconfig" TYPE FILE FILES "/home/seongunkim/SmartFactory/build/path_planning/catkin_generated/installspace/path_planning.pc")
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/pkgconfig" TYPE FILE FILES "/home/yujin/smartfactory_ws/build/path_planning/catkin_generated/installspace/path_planning.pc")
 endif()
 
 if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_COMPONENT)
   file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/share/path_planning/cmake" TYPE FILE FILES
-    "/home/seongunkim/SmartFactory/build/path_planning/catkin_generated/installspace/path_planningConfig.cmake"
-    "/home/seongunkim/SmartFactory/build/path_planning/catkin_generated/installspace/path_planningConfig-version.cmake"
+    "/home/yujin/smartfactory_ws/build/path_planning/catkin_generated/installspace/path_planningConfig.cmake"
+    "/home/yujin/smartfactory_ws/build/path_planning/catkin_generated/installspace/path_planningConfig-version.cmake"
     )
 endif()
 
 if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_COMPONENT)
-  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/share/path_planning" TYPE FILE FILES "/home/seongunkim/SmartFactory/src/path_planning/package.xml")
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/share/path_planning" TYPE FILE FILES "/home/yujin/smartfactory_ws/src/path_planning/package.xml")
 endif()
 
