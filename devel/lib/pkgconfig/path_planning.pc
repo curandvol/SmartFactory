@@ -1,4 +1,4 @@
-prefix=/home/seongunkim/SmartFactory/devel
+prefix=/home/yujin/smartfactory_ws/devel
 
 Name: path_planning
 Description: Description of path_planning

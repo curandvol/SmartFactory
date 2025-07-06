@@ -7,7 +7,7 @@
 # new environment variables
 
 # modified environment variables
-export CMAKE_PREFIX_PATH="/home/seongunkim/SmartFactory/devel:$CMAKE_PREFIX_PATH"
-export PWD='/home/seongunkim/SmartFactory/build'
-export ROSLISP_PACKAGE_DIRECTORIES="/home/seongunkim/SmartFactory/devel/share/common-lisp:$ROSLISP_PACKAGE_DIRECTORIES"
-export ROS_PACKAGE_PATH="/home/seongunkim/SmartFactory/src:$ROS_PACKAGE_PATH"
+export LD_LIBRARY_PATH='/opt/ros/noetic/lib:/opt/ros/noetic/lib/x86_64-linux-gnu:/usr/local/lib'
+export PKG_CONFIG_PATH='/opt/ros/noetic/lib/pkgconfig:/opt/ros/noetic/lib/x86_64-linux-gnu/pkgconfig'
+export PWD='/home/yujin/smartfactory_ws/build'
+export ROS_PACKAGE_PATH='/home/yujin/smartfactory_ws/src:/opt/ros/noetic/share'

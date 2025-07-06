@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
   <!-- 1) Load named goals -->
-  <rosparam file="$(find path_planning)/maps/slam_maps/goals.yaml" command="load"/>
+  <rosparam file="$(find path_planning)/goals/it2_last_goals.yaml" command="load"/>
 
   <!-- 2) Arguments for map center and robot1 init -->
   <arg name="map_center_x"     default="5.815"/>
@@ -55,6 +55,6 @@
 
   <!-- 10) RViz -->
   <node name="rviz" pkg="rviz" type="rviz"
-        args="-d $(find path_planning)/rviz/multi_robot_debug.rviz" output="screen"/>
+        args="-d $(find path_planning)/rviz/it2_last.rviz" output="screen"/>
 </launch>
 

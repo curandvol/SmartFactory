@@ -67,14 +67,14 @@ set(path_planning_CONFIG_INCLUDED TRUE)
 
 # set variables for source/devel/install prefixes
 if("FALSE" STREQUAL "TRUE")
-  set(path_planning_SOURCE_PREFIX /home/seongunkim/SmartFactory/src/path_planning)
-  set(path_planning_DEVEL_PREFIX /home/seongunkim/SmartFactory/devel)
+  set(path_planning_SOURCE_PREFIX /home/yujin/smartfactory_ws/src/path_planning)
+  set(path_planning_DEVEL_PREFIX /home/yujin/smartfactory_ws/devel)
   set(path_planning_INSTALL_PREFIX "")
   set(path_planning_PREFIX ${path_planning_DEVEL_PREFIX})
 else()
   set(path_planning_SOURCE_PREFIX "")
   set(path_planning_DEVEL_PREFIX "")
-  set(path_planning_INSTALL_PREFIX /home/seongunkim/SmartFactory/install)
+  set(path_planning_INSTALL_PREFIX /home/yujin/smartfactory_ws/install)
   set(path_planning_PREFIX ${path_planning_INSTALL_PREFIX})
 endif()
 
@@ -156,7 +156,7 @@ foreach(library ${libraries})
     set(lib_path "")
     set(lib "${library}-NOTFOUND")
     # since the path where the library is found is returned we have to iterate over the paths manually
-    foreach(path /home/seongunkim/SmartFactory/install/lib;/home/seongunkim/catkin_ws/devel/lib;/opt/ros/noetic/lib)
+    foreach(path /home/yujin/smartfactory_ws/install/lib;/home/yujin/smartfactory_ws/devel/lib;/opt/ros/noetic/lib)
       find_library(lib ${library}
         PATHS ${path}
         NO_DEFAULT_PATH NO_CMAKE_FIND_ROOT_PATH)
