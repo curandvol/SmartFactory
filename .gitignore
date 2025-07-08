@@ -1,0 +1,8 @@
+# Catkin build artifacts
+/build/
+/devel/
+/install/
+
+# optional: workspace marker
+.catkin_workspace
+
