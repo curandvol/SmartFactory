@@ -1,2 +1,13 @@
 digraph G {
-"no tf data recieved"}
+"robot_2/odom" -> "robot_2/base_link"[label="Broadcaster: /robot_2/rsp2\nAverage rate: 10000.000 Hz\nMost recent transform: 0.000 ( 1751118326.046 sec old)\nBuffer length: 0.000 sec\n"];
+"robot_1/odom" -> "robot_1/base_link"[label="Broadcaster: /robot_1/rsp1\nAverage rate: 10000.000 Hz\nMost recent transform: 0.000 ( 1751118326.046 sec old)\nBuffer length: 0.000 sec\n"];
+edge [style=invis];
+ subgraph cluster_legend { style=bold; color=black; label ="view_frames Result";
+"Recorded at time: 1751118326.046"[ shape=plaintext ] ;
+ }->"robot_2/odom";
+edge [style=invis];
+ subgraph cluster_legend { style=bold; color=black; label ="view_frames Result";
+"Recorded at time: 1751118326.046"[ shape=plaintext ] ;
+ }->"robot_1/odom";
+}
+

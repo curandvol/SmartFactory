@@ -5,6 +5,7 @@ import numpy as np
 import heapq
 import os
 import rospkg
+
 from nav_msgs.msg import Path
 from geometry_msgs.msg import PoseStamped
 from std_msgs.msg import String
@@ -202,3 +203,4 @@ if __name__ == '__main__':
 
     rospy.loginfo("[path_planner_node] Ready for goal commands.")
     rospy.spin()
+

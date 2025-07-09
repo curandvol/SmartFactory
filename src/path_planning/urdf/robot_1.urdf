@@ -1,3 +1,4 @@
+
 <robot name="robot_1">
 
   <!-- 기본 바디 -->
@@ -5,6 +6,8 @@
     <visual>
       <geometry>
         <box size="0.5 0.3 0.2"/>
+
+
       </geometry>
       <material name="blue">
         <color rgba="0 0 1 1"/>
@@ -103,4 +106,5 @@
   </gazebo>
 
 </robot>
+
 
