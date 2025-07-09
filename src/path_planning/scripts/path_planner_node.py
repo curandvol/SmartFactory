@@ -4,6 +4,7 @@ import tf
 import numpy as np
 import heapq
 import os
+import rospkg
 from nav_msgs.msg import Path
 from geometry_msgs.msg import PoseStamped
 from std_msgs.msg import String
@@ -51,15 +52,23 @@ def astar(grid, start, end):
 def world_to_grid(x, y):
     col = int((x - MAP_ORIGIN[0]) / MAP_RESOLUTION)
     row = int((y - MAP_ORIGIN[1]) / MAP_RESOLUTION)
-    # grid index 클램핑
+    # 2) NumPy 인덱스(row=0이 최상단)이므로 아래로 뒤집기
+    row = grid.shape[0] - 1 - row
+    # 3) 클램핑
     row = max(0, min(row, grid.shape[0]-1))
     col = max(0, min(col, grid.shape[1]-1))
     return row, col
 
 
 def grid_to_world(r, c):
-    x = MAP_ORIGIN[0] + (c + 0.5) * MAP_RESOLUTION
-    y = MAP_ORIGIN[1] + (r + 0.5) * MAP_RESOLUTION
+# 2) NumPy 인덱스(row=0이 최상단)이므로 아래로 뒤집기
+    row = grid.shape[0] - 1 - r
+    # 3) 클램핑
+    row = max(0, min(row, grid.shape[0]-1))
+    col = max(0, min(c, grid.shape[1]-1))
+    
+    x = MAP_ORIGIN[0] + (col + 0.5) * MAP_RESOLUTION
+    y = MAP_ORIGIN[1] + (row + 0.5) * MAP_RESOLUTION
     rospy.loginfo(f"[DEBUG grid_to_world] Grid (row={r}, col={c}) -> World ({x:.2f}, {y:.2f})")
     return x, y
 
@@ -81,12 +90,22 @@ def path_to_PathMsg(path, frame_id='map'):
     return msg
 
 def load_grid():
-    path = rospy.get_param("~grid_path", "/home/yujin/smart_factory_ws/src/path_planning/maps/grid.npy")
-    while not os.path.exists(path):
-        rospy.logwarn(f"Waiting for {path} to be generated...")
+    # 1) 런타임에 path_planning 패키지 경로를 얻어서,
+    rospack = rospkg.RosPack()
+    pkg_path = rospack.get_path('path_planning')
+
+    # 2) 그 아래 maps/grid.npy 를 기본값으로 삼고,
+    default_grid = os.path.join(pkg_path, 'maps', 'grid.npy')
+
+    # 3) launch 파일에서 ~grid_path 파라미터가 넘어오면 그걸, 아니면 default_grid 를 사용
+    grid_path = rospy.get_param("~grid_path", default_grid)
+
+    while not os.path.exists(grid_path):
+        rospy.logwarn(f"Waiting for {grid_path} to be generated...")
         rospy.sleep(0.5)
-    grid = np.load(path)
-    rospy.loginfo(f"Loaded grid shape: {grid.shape}")
+        
+    grid = np.load(grid_path)
+    rospy.loginfo(f"Loaded grid from {grid_path}, shape: {grid.shape}")
     return grid
 
 def find_current_grid(tf_listener, robot_frame):
@@ -163,9 +182,19 @@ def goal_callback(msg, args):
 
 if __name__ == '__main__':
     rospy.init_node('path_planner_node')
+    if rospy.has_param('goals'):
+    # /goals 파라미터로 넘어온 dict 로 기존 TASK_POSITIONS 를 업데이트
+        raw_goals = rospy.get_param('goals')
+        TASK_POSITIONS.clear()
+        # 리스트→튜플 변환해 주는 게 좋습니다
+        for name, coords in raw_goals.items():
+            TASK_POSITIONS[name] = tuple(coords)
+        rospy.loginfo(f"[path_planner_node] Loaded goals: {TASK_POSITIONS}")
+    else:
+        rospy.logwarn("[path_planner_node] No 'goals' param found, using defaults.")
+        
     tf_listener = tf.TransformListener()
     grid = load_grid()
-
     robots = ['robot_1', 'robot_2']
     for robot in robots:
         pub = rospy.Publisher(f"/{robot}/path", Path, queue_size=10)

@@ -1,0 +1,21 @@
+<launch>
+  <!-- 맵 서버 실행 -->
+  <node name="map_server" pkg="map_server" type="map_server"
+        args="/home/leekwansuk/SmartFactory/workspace_su/my_factory_map.yaml" />
+
+  <!-- AMCL 로컬라이제이션 -->
+  <include file="$(find path_planning)/launch/amcl.launch" />
+
+  <!-- move_base 실행 -->
+  <node name="move_base" pkg="move_base" type="move_base" output="screen">
+    <rosparam file="$(find path_planning)/config/costmap_common_params.yaml" command="load" />
+    <rosparam file="$(find path_planning)/config/global_costmap_params.yaml" command="load" />
+    <rosparam file="$(find path_planning)/config/local_costmap_params.yaml" command="load" />
+    <rosparam file="$(find path_planning)/config/base_local_planner_params.yaml" command="load" />
+
+    <!-- TF extrapolation 에러 방지용 주기 설정 -->
+    <param name="controller_frequency" value="5.0" />
+    <param name="planner_frequency" value="1.0" />
+  </node>
+</launch>
+
