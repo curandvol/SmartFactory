@@ -1,0 +1,10 @@
+<launch>
+  <!-- URDF 로봇 설명을 파라미터로 로딩 -->
+  <param name="robot_description" command="$(find xacro)/xacro '$(find path_planning)/urdf/robot_1.urdf'" />
+  
+  <!-- 로봇 상태 퍼블리셔 실행 -->
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" output="screen" />
+
+  <!-- 조인트 상태 퍼블리셔 GUI (필요시) -->
+  <node name="joint_state_publisher_gui" pkg="joint_state_publisher_gui" type="joint_state_publisher_gui" />
+</launch>

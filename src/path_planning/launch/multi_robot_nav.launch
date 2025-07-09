@@ -53,6 +53,7 @@
     <node name="rsp2" pkg="robot_state_publisher" type="robot_state_publisher" output="screen"/>
   </group>
 
+
   <!-- 10) RViz -->
   <node name="rviz" pkg="rviz" type="rviz"
         args="-d $(find path_planning)/rviz/it2_last.rviz" output="screen"/>
