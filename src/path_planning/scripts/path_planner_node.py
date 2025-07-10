@@ -2,64 +2,104 @@
 import rospy
 import tf
 import numpy as np
-import heapq
 import os
 import rospkg
-
-from nav_msgs.msg import Path
+import cv2
+import yaml
+from nav_msgs.msg import Path, OccupancyGrid
 from geometry_msgs.msg import PoseStamped
 from std_msgs.msg import String
 from collections import deque
+from algorithms import dijkstra, heuristic, astar
+import threading
+from pgm_to_grid import image_Grid
 
-TASK_POSITIONS = {
-    'goal1': (-3.0, -1.5),
-    'goal2': (-2.5, -1.0),
+# 1) 목표 이름→월드좌표 (goals.yaml 에서 load됨)
+TASK_POSITIONS = {}
+
+# 2) R1/R2 경로 저장
+PATHS = {
+    'robot_1': {'full_path': [], 'current_index': 0, 'active': False},
+    'robot_2': {'full_path': [], 'current_index': 0, 'active': False}
 }
+LAST_POSITIONS = {'robot_1': None, 'robot_2': None}
 
-MAP_ORIGIN = (-3.666302, -1.963480)  # .yaml 파일과 동일
-MAP_RESOLUTION = 0.05  # m/pixel
+# 3) 글로벌 origin 및 셀 크기
+GRID_ORIGIN_X = 0.0
+GRID_ORIGIN_Y = 0.0
+GRID_CELL_SIZE = 1.0
 
-def heuristic(a, b):
-    return abs(a[0] - b[0]) + abs(a[1] - b[1])
+# 4) 경로 업데이트
+PATH_UPDATE_RATE = 1.0
+path_lock = threading.Lock()
 
-def astar(grid, start, end):
-    H, W = grid.shape
-    moves = [(1,0), (-1,0), (0,1), (0,-1)]
-    g_score = {start: 0}
-    f_score = {start: heuristic(start, end)}
-    came_from = {}
-    pq = [(f_score[start], start)]
+# 5) 동시 경로 수집
+GOAL_COLLECTION = {'robot_1': None, 'robot_2': None, 'collection_timeout': 2.0, 'collection_start_time': None, 'collection_active': False}
+goal_collection_lock = threading.Lock()
 
-    while pq:
-        _, current = heapq.heappop(pq)
-        if current == end:
-            path = [current]
-            while current in came_from:
-                current = came_from[current]
-                path.append(current)
-            return path[::-1]
-        for dr, dc in moves:
-            nr, nc = current[0] + dr, current[1] + dc
-            neighbor = (nr, nc)
-            if 0 <= nr < H and 0 <= nc < W and grid[nr][nc] == 0:
-                tentative_g = g_score[current] + 1
-                if neighbor not in g_score or tentative_g < g_score[neighbor]:
-                    g_score[neighbor] = tentative_g
-                    f_score[neighbor] = tentative_g + heuristic(neighbor, end)
-                    came_from[neighbor] = current
-                    heapq.heappush(pq, (f_score[neighbor], neighbor))
-    return None
+# 그리드 로드
+def load_grid():
+    """
+    동적 모드: launch 파라미터 pgm_path, map_yaml 활용
+    fallback: 기존 grid.npy 로드
+    """
+    pgm = rospy.get_param("~pgm_path", None)
+    yaml_f = rospy.get_param("~map_yaml", None)
+    if pgm and yaml_f:
+        img = cv2.imread(pgm, cv2.IMREAD_GRAYSCALE)
+        if img is None:
+            rospy.logerr(f"Cannot load PGM: {pgm}")
+            rospy.signal_shutdown("Missing map image")
+            return
+        with open(yaml_f, 'r') as f:
+            info = yaml.safe_load(f)
+        res = info['resolution']
+        origin = info.get('origin', [0.0, 0.0, 0.0])
+        rw = rospy.get_param("~robot_width", 0.55)
+        sm = rospy.get_param("~safety_margin", 0.05)
+        thresh = rospy.get_param("~wall_thresh", 210)
+        # 셀 크기 및 그리드 크기
+        cell_m = rw/2 + sm
+        pix_per_cell = cell_m / res
+        h = max(1, int(img.shape[0] / pix_per_cell))
+        w = max(1, int(img.shape[1] / pix_per_cell))
+        rospy.loginfo(f"Generating grid from {pgm}: {h}x{w} cells (thresh={thresh})")
+        grid, ch, cw = image_Grid(h, w, img, wall_thresh=thresh)
+        rospy.loginfo(f"  -> grid shape={grid.shape}, cell px={ch}x{cw}")
+        # 글로벌 origin/셀 갱신
+        global GRID_ORIGIN_X, GRID_ORIGIN_Y, GRID_CELL_SIZE
+        GRID_ORIGIN_X = origin[0]
+        GRID_ORIGIN_Y = origin[1]
+        GRID_CELL_SIZE = cell_m
+        return grid
+    # fallback: npy 로드
+    rp = rospkg.RosPack()
+    pkg = rp.get_path('path_planning')
+    default_np = os.path.join(pkg, 'maps', 'grid.npy')
+    gp = rospy.get_param("~grid_path", default_np)
+    while not os.path.exists(gp):
+        rospy.logwarn(f"Waiting for grid at {gp}...")
+        rospy.sleep(0.5)
+    grid = np.load(gp)
+    rospy.loginfo(f"Loaded grid from .npy: {grid.shape}")
+    return grid
 
 def world_to_grid(x, y):
     col = int((x - MAP_ORIGIN[0]) / MAP_RESOLUTION)
     row = int((y - MAP_ORIGIN[1]) / MAP_RESOLUTION)
     # 2) NumPy 인덱스(row=0이 최상단)이므로 아래로 뒤집기
     row = grid.shape[0] - 1 - row
+
     # 3) 클램핑
     row = max(0, min(row, grid.shape[0]-1))
     col = max(0, min(col, grid.shape[1]-1))
     return row, col
 
+# 그리드->월드 변환
+def grid_to_world(r, c):
+    inv = grid.shape[0] - 1 - r
+    x = GRID_ORIGIN_X + (c + 0.5) * GRID_CELL_SIZE
+    y = GRID_ORIGIN_Y + (inv + 0.5) * GRID_CELL_SIZE
 
 def grid_to_world(r, c):
 # 2) NumPy 인덱스(row=0이 최상단)이므로 아래로 뒤집기
@@ -183,17 +223,30 @@ def goal_callback(msg, args):
 
 if __name__ == '__main__':
     rospy.init_node('path_planner_node')
+    TASK_POSITIONS.clear()
+    # 1) 목표 위치 로드
     if rospy.has_param('goals'):
-    # /goals 파라미터로 넘어온 dict 로 기존 TASK_POSITIONS 를 업데이트
-        raw_goals = rospy.get_param('goals')
-        TASK_POSITIONS.clear()
-        # 리스트→튜플 변환해 주는 게 좋습니다
-        for name, coords in raw_goals.items():
-            TASK_POSITIONS[name] = tuple(coords)
-        rospy.loginfo(f"[path_planner_node] Loaded goals: {TASK_POSITIONS}")
-    else:
-        rospy.logwarn("[path_planner_node] No 'goals' param found, using defaults.")
+        raw = rospy.get_param('goals')
+        TASK_POSITIONS.update({k: tuple(v) for k, v in raw.items()})
+    if rospy.has_param('homes'):
+        raw_homes = rospy.get_param('homes')
+        TASK_POSITIONS.update({k: tuple(v) for k, v in raw_homes.items()})
+    rospy.loginfo(f"Goals loaded: {TASK_POSITIONS}")
         
+    # 2) 그리드 로드
+    grid = load_grid()
+    """
+    map_msg = rospy.wait_for_message('/map', OccupancyGrid)
+    down = rospy.get_param('~downsample_factor', 1)
+    
+    GRID_CELL_SIZE = map_msg.info.resolution * down
+    GRID_ORIGIN_X  = map_msg.info.origin.position.x
+    GRID_ORIGIN_Y  = map_msg.info.origin.position.y
+
+    rospy.loginfo(f"Using map origin=({GRID_ORIGIN_X:.3f}, {GRID_ORIGIN_Y:.3f}), "
+                  f"cell_size={GRID_CELL_SIZE:.3f}")
+    """
+    # 3) TF 리스너 초기화
     tf_listener = tf.TransformListener()
     grid = load_grid()
     robots = ['robot_1', 'robot_2']
@@ -202,5 +255,7 @@ if __name__ == '__main__':
         rospy.Subscriber(f"/{robot}/goal", String, goal_callback, (robot, tf_listener, grid, pub, robots))
 
     rospy.loginfo("[path_planner_node] Ready for goal commands.")
+    rospy.spin()
+
     rospy.spin()
 

@@ -30,9 +30,11 @@ def image_Grid(h, w, img, wall_thresh=210):
 
             # 셀 영역 잘라오기
             cell = img[y1:y2, x1:x2]
-
+                
+            # 셀 영역에 검정색이 하나라도 있으면 장애물 cell로  판단(아니면 1)
+            row.append(1 if np.any(cell<wall_thresh) else 0)
             # 검은색 = wall → 평균 밝기 < 임계치 → wall(1), 아니면 free(0)
-            row.append(1 if cell.mean() < wall_thresh else 0)
+            #row.append(1 if cell.mean() < wall_thresh else 0)
         grid.append(row)  # 완성된 row를 grid에 추가
 
     # numpy array로 변환하고 셀 크기 정보 함께 반환

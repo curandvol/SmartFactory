@@ -20,14 +20,14 @@
 
   <!-- 4) Static TF for grid center on /tf -->
   <node pkg="tf" type="static_transform_publisher" name="map_center_tf" output="screen"
-        args="$(arg map_center_x) $(arg map_center_y) 0 3.137 0 0 map map_center 100"/>
+        args="$(arg map_center_x) $(arg map_center_y) 0 0 0 3.137 map map_center 100"/>
 
   <!-- 5) Static TF for robot_1 start pose on /tf -->
   <node pkg="tf" type="static_transform_publisher" name="robot1_init_tf" output="screen"
         args="$(arg robot1_init_x) $(arg robot1_init_y) 0 $(arg robot1_init_yaw) 0 0 map robot_1/base_link 100"/>
 
   <node pkg="tf" type="static_transform_publisher" name="robot2_init_tf" output="screen"
-        args="$(arg robot2_init_x) $(arg robot2_init_y) 0 $(arg robot1_init_yaw) 0 0 map robot_2/base_link 100"/>
+        args="$(arg robot2_init_x) $(arg robot2_init_y) 0 $(arg robot2_init_yaw) 0 0 0 map robot_2/base_link 100"/>
 
   <!-- 6) Map Server -->
   <node pkg="map_server" type="map_server" name="map_server"
@@ -35,12 +35,19 @@
 
   <!-- 7) Central Path Planner -->
   <node pkg="path_planning" type="path_planner_node.py" name="path_planner" output="screen">
-    <!-- existing -->
+    <!-- 기존 grid_path + downsample_factor 방식 제거
     <param name="grid_path"        value="$(find path_planning)/maps/grid.npy"/>
-    <!-- new: how many original pixels per grid cell -->
     <param name="downsample_factor" value="6"/>
-  </node>
 
+      -->
+
+    <!-- 추가: pgm+grid 변환용 파라미터-->
+    <param name="pgm_path"       value="$(find path_planning)/maps/slam_maps/it2_last.pgm"/>
+    <param name="map_yaml"       value="$(find path_planning)/maps/slam_maps/it2_last.yaml"/>
+    <param name="robot_width"    value="0.55"/>
+    <param name="safety_margin"  value="0.05"/>
+    <param name="wall_thresh"    value="210"/>
+  </node>
   <!-- 8) Robot 1 -->
   <group ns="robot_1">
     <param name="robot_description" textfile="$(find path_planning)/urdf/robot_1.urdf"/>
