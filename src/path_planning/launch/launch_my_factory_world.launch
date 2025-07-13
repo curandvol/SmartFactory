@@ -1,12 +1,8 @@
 <launch>
-  <!-- launch 인자에 파일 경로를 분리 -->
-  <arg name="world_file"
-       default="$(find path_planning)/maps/Factory/Factory.world"/>
-
+  <!-- Gazebo에서 my_factory.world 띄우기 -->
   <include file="$(find gazebo_ros)/launch/empty_world.launch">
-    <arg name="world_name" value="$(arg world_file)"/>   <!-- 핵심 -->
-    <arg name="gui"        value="true"/>
-    <arg name="use_sim_time" value="true"/>
+    <arg name="world_name" value="$(env HOME)/SmartFactory/workspace_su/my_factory.world" />
+    <arg name="gui" value="true" />
   </include>
 </launch>
 

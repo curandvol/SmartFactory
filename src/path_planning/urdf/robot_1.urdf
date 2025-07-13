@@ -1,4 +1,3 @@
-
 <robot name="robot_1">
 
   <!-- 기본 바디 -->
@@ -6,20 +5,16 @@
     <visual>
       <geometry>
         <box size="0.5 0.3 0.2"/>
-
-
       </geometry>
       <material name="blue">
         <color rgba="0 0 1 1"/>
       </material>
     </visual>
-
     <collision>
       <geometry>
         <box size="0.5 0.3 0.2"/>
       </geometry>
     </collision>
-
     <inertial>
       <mass value="2.0"/>
       <inertia ixx="0.1" ixy="0.0" ixz="0.0"
@@ -28,12 +23,129 @@
     </inertial>
   </link>
 
-  <!-- ✅ base_link의 색상 (Gazebo용) -->
   <gazebo reference="base_link">
     <material>Gazebo/Blue</material>
   </gazebo>
 
-  <!-- ✅ 라이다 센서 추가 -->
+  <!-- 앞쪽 좌우 바퀴 -->
+  <link name="front_left_wheel_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5708 0 0"/>
+      <geometry>
+        <cylinder radius="0.05" length="0.05"/>
+      </geometry>
+      <material name="black">
+        <color rgba="0 0 0 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="1.5708 0 0"/>
+      <geometry>
+        <cylinder radius="0.05" length="0.05"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.5"/>
+      <inertia ixx="0.01" iyy="0.01" izz="0.01" ixy="0" ixz="0" iyz="0"/>
+    </inertial>
+  </link>
+
+  <joint name="front_left_wheel_joint" type="continuous">
+    <parent link="base_link"/>
+    <child link="front_left_wheel_link"/>
+    <origin xyz="0.15 0.15 -0.1" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+  </joint>
+
+  <link name="front_right_wheel_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5708 0 0"/>
+      <geometry>
+        <cylinder radius="0.05" length="0.05"/>
+      </geometry>
+      <material name="black">
+        <color rgba="0 0 0 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="1.5708 0 0"/>
+      <geometry>
+        <cylinder radius="0.05" length="0.05"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.5"/>
+      <inertia ixx="0.01" iyy="0.01" izz="0.01" ixy="0" ixz="0" iyz="0"/>
+    </inertial>
+  </link>
+
+  <joint name="front_right_wheel_joint" type="continuous">
+    <parent link="base_link"/>
+    <child link="front_right_wheel_link"/>
+    <origin xyz="0.15 -0.15 -0.1" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+  </joint>
+
+  <!-- 뒤쪽 좌우 바퀴 -->
+  <link name="back_left_wheel_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5708 0 0"/>
+      <geometry>
+        <cylinder radius="0.05" length="0.05"/>
+      </geometry>
+      <material name="black">
+        <color rgba="0 0 0 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="1.5708 0 0"/>
+      <geometry>
+        <cylinder radius="0.05" length="0.05"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.5"/>
+      <inertia ixx="0.01" iyy="0.01" izz="0.01" ixy="0" ixz="0" iyz="0"/>
+    </inertial>
+  </link>
+
+  <joint name="back_left_wheel_joint" type="continuous">
+    <parent link="base_link"/>
+    <child link="back_left_wheel_link"/>
+    <origin xyz="-0.15 0.15 -0.1" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+  </joint>
+
+  <link name="back_right_wheel_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5708 0 0"/>
+      <geometry>
+        <cylinder radius="0.05" length="0.05"/>
+      </geometry>
+      <material name="black">
+        <color rgba="0 0 0 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="1.5708 0 0"/>
+      <geometry>
+        <cylinder radius="0.05" length="0.05"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.5"/>
+      <inertia ixx="0.01" iyy="0.01" izz="0.01" ixy="0" ixz="0" iyz="0"/>
+    </inertial>
+  </link>
+
+  <joint name="back_right_wheel_joint" type="continuous">
+    <parent link="base_link"/>
+    <child link="back_right_wheel_link"/>
+    <origin xyz="-0.15 -0.15 -0.1" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+  </joint>
+
+  <!-- 라이다 센서 -->
   <link name="lidar_link">
     <visual>
       <geometry>
@@ -44,13 +156,11 @@
         <color rgba="0.6 0.6 0.6 1"/>
       </material>
     </visual>
-
     <collision>
       <geometry>
         <cylinder length="0.05" radius="0.04"/>
       </geometry>
     </collision>
-
     <inertial>
       <mass value="0.1"/>
       <origin xyz="0 0 0" rpy="0 0 0"/>
@@ -60,19 +170,13 @@
     </inertial>
   </link>
 
-  <!-- ✅ lidar_link의 색상 (Gazebo용) -->
-  <gazebo reference="lidar_link">
-    <material>Gazebo/Gray</material>
-  </gazebo>
-
-  <!-- ✅ 라이다를 base_link 위에 고정 -->
   <joint name="lidar_joint" type="fixed">
     <parent link="base_link"/>
     <child link="lidar_link"/>
     <origin xyz="0 0 0.15" rpy="0 0 0"/>
   </joint>
 
-  <!-- ✅ Gazebo용 라이다 센서 플러그인 -->
+  <!-- Gazebo용 라이다 -->
   <gazebo reference="lidar_link">
     <sensor type="ray" name="laser">
       <pose>0 0 0 0 0 0</pose>
@@ -105,6 +209,20 @@
     </sensor>
   </gazebo>
 
+  <!-- Gazebo용 이동 플러그인 -->
+  <gazebo>
+    <plugin name="differential_drive_controller" filename="libgazebo_ros_diff_drive.so">
+      <ros>
+        <remapping>cmd_vel:=/cmd_vel</remapping>
+      </ros>
+      <updateRate>50.0</updateRate>
+      <leftJoint>back_left_wheel_joint</leftJoint>
+      <rightJoint>back_right_wheel_joint</rightJoint>
+      <wheelSeparation>0.3</wheelSeparation>
+      <wheelDiameter>0.1</wheelDiameter>
+      <torque>5.0</torque>
+      <commandTopic>/cmd_vel</commandTopic>
+    </plugin>
+  </gazebo>
+
 </robot>
-
-
