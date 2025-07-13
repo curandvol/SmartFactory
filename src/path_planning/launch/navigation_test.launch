@@ -1,7 +1,7 @@
 <launch>
   <!-- 맵 서버 실행 -->
   <node name="map_server" pkg="map_server" type="map_server"
-        args="$(find path_planning)/maps/Factory/Factory.yaml" />
+        args="/home/leekwansuk/SmartFactory/workspace_su/my_factory_map.yaml" />
 
   <!-- AMCL 로컬라이제이션 -->
   <include file="$(find path_planning)/launch/amcl.launch" />

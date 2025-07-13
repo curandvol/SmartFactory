@@ -1,9 +1,11 @@
 <launch>
-  <!-- URDF + TF 퍼블리시: robot_description.launch가 다 처리 -->
+  <!-- URDF 로딩 -->
   <include file="$(find path_planning)/launch/robot_description.launch"/>
 
-  <!-- Gazebo에 로봇 스폰 (단 한 번만!) -->
+  <!-- joint_state_publisher는 이미 포함돼 있으므로 생략 가능 -->
+
+  <!-- Gazebo에 로봇 스폰 -->
   <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" output="screen"
-        args="-param robot_description -urdf -model my_robot -x 0 -y 0 -z 0.1" />
+        args="-param robot_description -urdf -model robot -x 0 -y 0 -z 0.1"/>
 </launch>
 
