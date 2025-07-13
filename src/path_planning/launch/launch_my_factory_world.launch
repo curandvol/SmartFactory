@@ -1,7 +1,8 @@
 <launch>
+ <param name="use_sim_time" value="true" />
   <!-- Gazebo에서 my_factory.world 띄우기 -->
   <include file="$(find gazebo_ros)/launch/empty_world.launch">
-    <arg name="world_name" value="$(env HOME)/SmartFactory/workspace_su/my_factory.world" />
+    <arg name="world_name" value="$(env HOME)/SmartFactory/src/gazebo/my_factory.world" />
     <arg name="gui" value="true" />
   </include>
 </launch>
