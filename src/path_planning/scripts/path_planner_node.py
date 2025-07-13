@@ -6,6 +6,7 @@ import os
 import rospkg
 import cv2
 import yaml
+import math
 from nav_msgs.msg import Path, OccupancyGrid
 from geometry_msgs.msg import PoseStamped
 from std_msgs.msg import String
@@ -24,17 +25,26 @@ PATHS = {
 }
 LAST_POSITIONS = {'robot_1': None, 'robot_2': None}
 
-# 3) 글로벌 origin 및 셀 크기
+# 3) 퍼블리셔 저장
+PUBLISHERS = {}
+
+# 4) 글로벌 origin 및 셀 크기
 GRID_ORIGIN_X = 0.0
 GRID_ORIGIN_Y = 0.0
 GRID_CELL_SIZE = 1.0
 
-# 4) 경로 업데이트
+# 5) 경로 업데이트
 PATH_UPDATE_RATE = 1.0
 path_lock = threading.Lock()
 
-# 5) 동시 경로 수집
-GOAL_COLLECTION = {'robot_1': None, 'robot_2': None, 'collection_timeout': 2.0, 'collection_start_time': None, 'collection_active': False}
+# 6) 동시 경로 수집
+GOAL_COLLECTION = {
+    'robot_1': None,
+    'robot_2': None,
+    'collection_timeout': 2.0,
+    'collection_start_time': None,
+    'collection_active': False
+}
 goal_collection_lock = threading.Lock()
 
 # 그리드 로드
@@ -85,8 +95,10 @@ def load_grid():
     return grid
 
 def world_to_grid(x, y):
-    col = int((x - MAP_ORIGIN[0]) / MAP_RESOLUTION)
-    row = int((y - MAP_ORIGIN[1]) / MAP_RESOLUTION)
+    col = (x - GRID_ORIGIN_X) / GRID_CELL_SIZE
+    row = (y - GRID_ORIGIN_Y) / GRID_CELL_SIZE
+    col = int(math.floor(col))
+    row = int(math.floor(row))
     # 2) NumPy 인덱스(row=0이 최상단)이므로 아래로 뒤집기
     row = grid.shape[0] - 1 - row
 
@@ -95,25 +107,18 @@ def world_to_grid(x, y):
     col = max(0, min(col, grid.shape[1]-1))
     return row, col
 
-# 그리드->월드 변환
 def grid_to_world(r, c):
-    inv = grid.shape[0] - 1 - r
-    x = GRID_ORIGIN_X + (c + 0.5) * GRID_CELL_SIZE
-    y = GRID_ORIGIN_Y + (inv + 0.5) * GRID_CELL_SIZE
-
-def grid_to_world(r, c):
-# 2) NumPy 인덱스(row=0이 최상단)이므로 아래로 뒤집기
-    row = grid.shape[0] - 1 - r
     # 3) 클램핑
-    row = max(0, min(row, grid.shape[0]-1))
+    row = max(0, min(r, grid.shape[0]-1))
     col = max(0, min(c, grid.shape[1]-1))
     
-    x = MAP_ORIGIN[0] + (col + 0.5) * MAP_RESOLUTION
-    y = MAP_ORIGIN[1] + (row + 0.5) * MAP_RESOLUTION
-    rospy.loginfo(f"[DEBUG grid_to_world] Grid (row={r}, col={c}) -> World ({x:.2f}, {y:.2f})")
+    inv = grid.shape[0] - 1 - row
+    x = GRID_ORIGIN_X + (col + 0.5) * GRID_CELL_SIZE
+    y = GRID_ORIGIN_Y + (inv + 0.5) * GRID_CELL_SIZE
+    
     return x, y
 
-def path_to_PathMsg(path, frame_id='map'):
+def path_to_PathMsg(path, frame_id='map',z =0.0):
     msg = Path()
     msg.header.stamp = rospy.Time.now()
     msg.header.frame_id = frame_id
@@ -121,40 +126,16 @@ def path_to_PathMsg(path, frame_id='map'):
         pose = PoseStamped()
         pose.header.frame_id = frame_id
         pose.pose.position.x, pose.pose.position.y = grid_to_world(r, c)
+        pose.pose.position.z = z
         pose.pose.orientation.w = 1.0
         msg.poses.append(pose)
-
-    rospy.loginfo(f"[DEBUG] Publishing path: frame_id={msg.header.frame_id}, num poses={len(msg.poses)}")
-    for i, pose in enumerate(msg.poses[:5]):
-        rospy.loginfo(f"Pose {i}: x={pose.pose.position.x:.2f}, y={pose.pose.position.y:.2f}")
-
     return msg
-
-def load_grid():
-    # 1) 런타임에 path_planning 패키지 경로를 얻어서,
-    rospack = rospkg.RosPack()
-    pkg_path = rospack.get_path('path_planning')
-
-    # 2) 그 아래 maps/grid.npy 를 기본값으로 삼고,
-    default_grid = os.path.join(pkg_path, 'maps', 'grid.npy')
-
-    # 3) launch 파일에서 ~grid_path 파라미터가 넘어오면 그걸, 아니면 default_grid 를 사용
-    grid_path = rospy.get_param("~grid_path", default_grid)
-
-    while not os.path.exists(grid_path):
-        rospy.logwarn(f"Waiting for {grid_path} to be generated...")
-        rospy.sleep(0.5)
-        
-    grid = np.load(grid_path)
-    rospy.loginfo(f"Loaded grid from {grid_path}, shape: {grid.shape}")
-    return grid
 
 def find_current_grid(tf_listener, robot_frame):
     try:
         now = rospy.Time(0)
         tf_listener.waitForTransform("map", robot_frame, now, rospy.Duration(1.0))
         (trans, _) = tf_listener.lookupTransform("map", robot_frame, now)
-        rospy.loginfo(f"[DEBUG TF] {robot_frame} at map: ({trans[0]:.2f}, {trans[1]:.2f})")
         return world_to_grid(trans[0], trans[1])
     except Exception as e:
         rospy.logwarn(f"TF lookup failed for {robot_frame}: {e}")
@@ -173,7 +154,7 @@ def find_nearest_free(grid, pos):
         for dr, dc in [(1,0), (-1,0), (0,1), (0,-1)]:
             q.append((r + dr, c + dc))
     return None
-
+    
 def goal_callback(msg, args):
     robot_name, tf_listener, grid, pub, robots = args
     task_name = msg.data.strip()
@@ -214,17 +195,40 @@ def goal_callback(msg, args):
         if pos and 0 <= pos[0] < grid.shape[0] and 0 <= pos[1] < grid.shape[1]:
             grid_dyn[pos[0], pos[1]] = 1
 
-    path = astar(grid_dyn, start, goal)
+    # 1) Dijkstra로 전체 경로 계산
+    path = dijkstra(grid_dyn, start, goal)
     if path is None:
-        rospy.logerr(f"[{robot_name}] No path found from {start} to {goal}")
-    else:
-        path_msg = path_to_PathMsg(path)
-        pub.publish(path_msg)
+        rospy.logerr(f"[{robot_name}] No path found by Dijkstra from {start} to {goal}")
+        return
+
+    # 2) Robot 2 우선순위: robot_1의 머리 부분만 블록 처리하여 A* 재계산
+    if robot_name == 'robot_2' and PATHS['robot_1']['full_path']:
+        head = PATHS['robot_1']['current_index']
+        lookahead = 10  # 앞으로 이만큼 칸만 블록 처리
+        block_cells = PATHS['robot_1']['full_path'][head:head + lookahead]
+        overlap = set(block_cells) & set(path)
+        if overlap:
+            rospy.logwarn(f"[{robot_name}] Overlap with robot_1 ahead ({len(overlap)} cells), replanning with A*")
+            grid_block = grid_dyn.copy()
+            for (r, c) in block_cells:
+                grid_block[r, c] = 1
+            new_path = astar(grid_block, start, goal)
+            if new_path is None:
+                rospy.logerr(f"[{robot_name}] A* replanning failed")
+                return
+            path = new_path
+            rospy.loginfo(f"[{robot_name}] A* replanned path ({len(path)} cells) ready")
+
+    # 3) 최종 경로 저장 및 활성화
+    with path_lock:
+        PATHS[robot_name]['full_path']    = path
+        PATHS[robot_name]['current_index'] = 0
+        PATHS[robot_name]['active']       = True
+    rospy.loginfo(f"[{robot_name}] final path ready ({len(path)} cells), starting 1 Hz stepping")
 
 if __name__ == '__main__':
     rospy.init_node('path_planner_node')
     TASK_POSITIONS.clear()
-    # 1) 목표 위치 로드
     if rospy.has_param('goals'):
         raw = rospy.get_param('goals')
         TASK_POSITIONS.update({k: tuple(v) for k, v in raw.items()})
@@ -233,29 +237,46 @@ if __name__ == '__main__':
         TASK_POSITIONS.update({k: tuple(v) for k, v in raw_homes.items()})
     rospy.loginfo(f"Goals loaded: {TASK_POSITIONS}")
         
-    # 2) 그리드 로드
+    # 그리드 로드
     grid = load_grid()
-    """
     map_msg = rospy.wait_for_message('/map', OccupancyGrid)
     down = rospy.get_param('~downsample_factor', 1)
-    
-    GRID_CELL_SIZE = map_msg.info.resolution * down
-    GRID_ORIGIN_X  = map_msg.info.origin.position.x
-    GRID_ORIGIN_Y  = map_msg.info.origin.position.y
-
     rospy.loginfo(f"Using map origin=({GRID_ORIGIN_X:.3f}, {GRID_ORIGIN_Y:.3f}), "
                   f"cell_size={GRID_CELL_SIZE:.3f}")
-    """
-    # 3) TF 리스너 초기화
+    
+    #GRID_CELL_SIZE = map_msg.info.resolution * down
+    GRID_ORIGIN_X  = map_msg.info.origin.position.x
+    GRID_ORIGIN_Y  = map_msg.info.origin.position.y
+    
+    # TF 리스너 & 퍼블리셔/구독자 설정
     tf_listener = tf.TransformListener()
-    grid = load_grid()
     robots = ['robot_1', 'robot_2']
     for robot in robots:
-        pub = rospy.Publisher(f"/{robot}/path", Path, queue_size=10)
-        rospy.Subscriber(f"/{robot}/goal", String, goal_callback, (robot, tf_listener, grid, pub, robots))
+        PUBLISHERS[robot] = rospy.Publisher(f"/{robot}/path", Path, queue_size=10)
+        rospy.Subscriber(f"/{robot}/goal", String, goal_callback,
+                         (robot, tf_listener, grid, PUBLISHERS[robot], robots))
+
+    # 1 Hz 스텝 퍼블리시 타이머
+    def step_callback(event):
+        with path_lock:
+            for rb, info in PATHS.items():
+                if not info['active']:
+                    continue
+                idx      = info['current_index']
+                full     = info['full_path']
+                remaining = full[idx:]
+                if not remaining:
+                    info['active'] = False
+                    rospy.loginfo(f"[{rb}] reached goal, stopping")
+                    continue
+                    
+                z= 1.0 if rb == 'robot_2' else 0.0
+                msg = path_to_PathMsg(remaining,z=z)
+                PUBLISHERS[rb].publish(msg)
+                info['current_index'] += 1
+
+    rospy.Timer(rospy.Duration(1.0), step_callback)
 
     rospy.loginfo("[path_planner_node] Ready for goal commands.")
-    rospy.spin()
-
     rospy.spin()
 

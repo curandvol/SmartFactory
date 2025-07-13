@@ -31,7 +31,7 @@
 
   <!-- 6) Map Server -->
   <node pkg="map_server" type="map_server" name="map_server"
-        args="$(find path_planning)/maps/slam_maps/it2_last.yaml"/>
+        args="$(find path_planning)/maps/IT2_slam/it2_last.yaml"/>
 
   <!-- 7) Central Path Planner -->
   <node pkg="path_planning" type="path_planner_node.py" name="path_planner" output="screen">
@@ -42,8 +42,8 @@
       -->
 
     <!-- 추가: pgm+grid 변환용 파라미터-->
-    <param name="pgm_path"       value="$(find path_planning)/maps/slam_maps/it2_last.pgm"/>
-    <param name="map_yaml"       value="$(find path_planning)/maps/slam_maps/it2_last.yaml"/>
+    <param name="pgm_path"       value="$(find path_planning)/maps/IT2_slam/it2_last.pgm"/>
+    <param name="map_yaml"       value="$(find path_planning)/maps/IT2_slam/it2_last.yaml"/>
     <param name="robot_width"    value="0.55"/>
     <param name="safety_margin"  value="0.05"/>
     <param name="wall_thresh"    value="210"/>
