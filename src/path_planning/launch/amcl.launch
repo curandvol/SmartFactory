@@ -1,15 +1,13 @@
 <launch>
+ <param name="use_sim_time" value="true" />
   <!-- AMCL 실행 -->
   <node name="amcl" pkg="amcl" type="amcl" output="screen">
-    <param name="base_frame_id" value="base_link"/>
+    <param name="base_frame_id" value="base_footprint"/>
     <param name="odom_frame_id" value="odom"/>
     <param name="global_frame_id" value="map"/>
     <param name="scan_topic" value="/scan"/>
+    <param name="transform_tolerance" value="0.5" />
   </node>
 
-  <!-- odom -> base_link 고정 트랜스폼 추가 -->
-  <node pkg="tf" type="static_transform_publisher"
-        name="fake_odom_tf"
-        args="0 0 0 0 0 0 odom base_link 10" />
 </launch>
 

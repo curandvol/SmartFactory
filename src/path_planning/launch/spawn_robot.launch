@@ -1,8 +1,7 @@
 <launch>
-  <!-- URDF 로딩 -->
-  <include file="$(find path_planning)/launch/robot_description.launch"/>
-
-  <!-- joint_state_publisher는 이미 포함돼 있으므로 생략 가능 -->
+ <param name="use_sim_time" value="true" />
+  <!-- URDF를 robot_description 파라미터에 로딩 -->
+  <param name="robot_description" command="$(find xacro)/xacro '$(find path_planning)/urdf/robot_1.urdf'" />
 
   <!-- Gazebo에 로봇 스폰 -->
   <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" output="screen"
