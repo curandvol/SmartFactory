@@ -5,7 +5,7 @@ import yaml
 import argparse
 import os
 
-def image_Grid(h, w, img, wall_thresh=210):
+def image_Grid(h, w, img, wall_thresh=210): #h,w = 만들고자 하는 행/열의 수
     """
     이미지 데이터를 grid map으로 변환
 
@@ -28,10 +28,10 @@ def image_Grid(h, w, img, wall_thresh=210):
             x1 = j * cw
             x2 = img_w if j == w - 1 else (j + 1) * cw
 
-            # 셀 영역 잘라오기
+            # 하나의 셀 영역 잘라오기
             cell = img[y1:y2, x1:x2]
                 
-            # 셀 영역에 검정색이 하나라도 있으면 장애물 cell로  판단(아니면 1)
+            # 셀 영역에 임계치가 넘는 픽셀이 하나라도 있으면 장애물 cell로  판단(아니면 1)
             row.append(1 if np.any(cell<wall_thresh) else 0)
             # 검은색 = wall → 평균 밝기 < 임계치 → wall(1), 아니면 free(0)
             #row.append(1 if cell.mean() < wall_thresh else 0)
