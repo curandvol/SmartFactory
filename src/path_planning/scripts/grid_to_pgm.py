@@ -2,7 +2,7 @@
 import argparse
 import numpy as np
 import cv2
-
+# 디버깅용 파일 (grid 화 시킨것을 PGM 파일로 계산)
 def main():
     p = argparse.ArgumentParser()
     p.add_argument('--input',  required=True, help='Path to grid.npy')

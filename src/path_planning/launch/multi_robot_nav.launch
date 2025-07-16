@@ -1,67 +1,67 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
-  <!-- Goals 및 Homes 관련 파라미터 로드-->
+  <!-- 1) Load named goals -->
   <rosparam file="$(find path_planning)/goals/it2_last_goals.yaml" command="load"/>
-  <!-- 맵 관련 설정 -->
-  <arg name="map_file" default="$(find path_planning)/maps/IT2_slam/it2_last.yaml"/>
-  <arg name="map_center_x" default="5.815"/>
-  <arg name="map_center_y" default="5.040"/>
 
-  <!-- 로봇 1 초기 위치 변수 -->
-  <arg name="robot1_init_x" default="-0.248"/>
-  <arg name="robot1_init_y" default="0.568"/>
-  <arg name="robot1_init_yaw" default="-0.028"/>
-
-  <!-- 로봇 2 초기 위치 변수 -->
-  <arg name="robot2_init_x" default="-0.830"/>
-  <arg name="robot2_init_y" default="0.985"/>
-  <arg name="robot2_init_yaw" default="0.0"/>
+  <!-- 2) Arguments for map center and robot1 init -->
+  <arg name="map_center_x"     default="5.815"/>
+  <arg name="map_center_y"     default="5.040"/>
+  <arg name="robot1_init_x"    default="-0.248"/>
+  <arg name="robot1_init_y"    default="0.568"/>
+  <arg name="robot1_init_yaw"  default="-0.028"/>
   
-  <!-- gird를 map center 에 맞추기 위한 초기 설정 변수 -->
-  <node pkg="tf2_ros" type="static_transform_publisher" name="map_center_tf" output="screen"
-        args="$(arg map_center_x) $(arg map_center_y) 0 3.137 0 0 map map_center"/>
+  <arg name="robot2_init_x"    default="-0.830"/>
+  <arg name="robot2_init_y"    default="0.985"/>
+  <arg name="robot2_init_yaw"  default="1.021"/>
 
-  <!-- robot1 의 초기 위치 설정을 위한 TF -->
-  <node pkg="tf2_ros" type="static_transform_publisher" name="robot1_init_tf" output="screen"
-        args="$(arg robot1_init_x) $(arg robot1_init_y) 0 $(arg robot1_init_yaw) 0 0 map robot_1/base_link"/>
+  <!-- 3) Expose those args as global params so path_planner_node can read them -->
+  <param name="map_center_x"    value="$(arg map_center_x)"/>
+  <param name="map_center_y"    value="$(arg map_center_y)"/>
 
-  <!-- Robot 2 초기 위치 TF -->
-  <node pkg="tf2_ros" type="static_transform_publisher" name="robot2_init_tf" output="screen"
-        args="$(arg robot2_init_x) $(arg robot2_init_y) 0 $(arg robot2_init_yaw) 0 0 map robot_2/base_link"/>
+  <!-- 4) Static TF for grid center on /tf -->
+  <node pkg="tf" type="static_transform_publisher" name="map_center_tf" output="screen"
+        args="$(arg map_center_x) $(arg map_center_y) 0 0 0 3.137 map map_center 100"/>
 
-  <!-- Map Server -->
+  <!-- 5) Static TF for robot_1 start pose on /tf -->
+  <node pkg="tf" type="static_transform_publisher" name="robot1_init_tf" output="screen"
+        args="$(arg robot1_init_x) $(arg robot1_init_y) 0 $(arg robot1_init_yaw) 0 0 map robot_1/base_link 100"/>
+
+  <node pkg="tf" type="static_transform_publisher" name="robot2_init_tf" output="screen"
+        args="$(arg robot2_init_x) $(arg robot2_init_y) 0 $(arg robot2_init_yaw) 0 0 0 map robot_2/base_link 100"/>
+
+  <!-- 6) Map Server -->
   <node pkg="map_server" type="map_server" name="map_server"
         args="$(find path_planning)/maps/IT2_slam/it2_last.yaml"/>
 
-  <!-- Central Path Planner -->
+  <!-- 7) Central Path Planner -->
   <node pkg="path_planning" type="path_planner_node.py" name="path_planner" output="screen">
-    <param name="grid_path" value="$(find path_planning)/maps/grid.npy"/>
+    <!-- 기존 grid_path + downsample_factor 방식 제거
+    <param name="grid_path"        value="$(find path_planning)/maps/grid.npy"/>
+    <param name="downsample_factor" value="6"/>
+
+      -->
+
+    <!-- 추가: pgm+grid 변환용 파라미터-->
+    <param name="pgm_path"       value="$(find path_planning)/maps/IT2_slam/it2_last.pgm"/>
+    <param name="map_yaml"       value="$(find path_planning)/maps/IT2_slam/it2_last.yaml"/>
+    <param name="robot_width"    value="0.55"/>
+    <param name="safety_margin"  value="0.05"/>
+    <param name="wall_thresh"    value="210"/>
   </node>
-   
-  <!-- Central Path Planner -->
-  <node pkg="path_planning" type="path_planner_node.py" name="central_path_planner" output="screen">
-    <param name="pgm_path" value="$(find path_planning)/maps/IT2_slam/it2_last.pgm"/>
-    <param name="map_yaml" value="$(find path_planning)/maps/IT2_slam/it2_last.yaml"/>
-    <param name="robot_width" value="0.55"/>
-    <param name="safety_margin" value="0.05"/>
-    <param name="wall_thresh" value="210"/>
-    <param name="grid_center_x" value="$(arg map_center_x)"/>
-    <param name="grid_center_y" value="$(arg map_center_y)"/>
-  </node>
-  
-  <!-- Robot 1 -->
+  <!-- 8) Robot 1 -->
   <group ns="robot_1">
     <param name="robot_description" textfile="$(find path_planning)/urdf/robot_1.urdf"/>
     <node name="rsp1" pkg="robot_state_publisher" type="robot_state_publisher" output="screen"/>
   </group>
 
-  <!-- Robot 2 -->
+  <!-- 9) Robot 2 -->
   <group ns="robot_2">
     <param name="robot_description" textfile="$(find path_planning)/urdf/robot_2.urdf"/>
     <node name="rsp2" pkg="robot_state_publisher" type="robot_state_publisher" output="screen"/>
   </group>
 
-  <!-- RViz 기본 파일 설정-->
+
+  <!-- 10) RViz -->
   <node name="rviz" pkg="rviz" type="rviz"
         args="-d $(find path_planning)/rviz/it2_last.rviz" output="screen"/>
 </launch>
