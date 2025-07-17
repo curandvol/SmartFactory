@@ -146,7 +146,7 @@
     </inertial>
   </link>
 
-  <joint name="back_right_wheel_joint" type="continuous">
+  <joint name="back_right_wheel_joint" type="fixed">
     <parent link="base_link"/>
     <child link="back_right_wheel_link"/>
     <origin xyz="-0.15 -0.15 -0.1" rpy="0 0 0"/>
@@ -181,61 +181,64 @@
   <joint name="lidar_joint" type="fixed">
     <parent link="base_link"/>
     <child link="lidar_link"/>
-    <origin xyz="0 0 0.15" rpy="0 0 0"/>
+    <origin xyz="0.2 0 0.12" rpy="0 0 0"/>
   </joint>
 
   <!-- Gazebo용 라이다 -->
-  <gazebo reference="lidar_link">
-    <sensor type="ray" name="laser">
-      <pose>0 0 0 0 0 0</pose>
-      <visualize>true</visualize>
-      <update_rate>10.0</update_rate>
-      <ray>
-        <scan>
-          <horizontal>
-            <samples>720</samples>
-            <resolution>1</resolution>
-            <min_angle>-1.5708</min_angle>
-            <max_angle>1.5708</max_angle>
-          </horizontal>
-        </scan>
-        <range>
-          <min>0.12</min>
-          <max>6.0</max>
-          <resolution>0.01</resolution>
-        </range>
-        <noise>
-          <type>gaussian</type>
-          <mean>0.0</mean>
-          <stddev>0.01</stddev>
-        </noise>
-      </ray>
-      <plugin name="gazebo_ros_laser_controller" filename="libgazebo_ros_laser.so">
-        <topicName>/scan</topicName>
-        <frameName>lidar_link</frameName>
-      </plugin>
-    </sensor>
-  </gazebo>
-
-  <!-- Gazebo용 이동 플러그인 -->
-  <gazebo>
-    <plugin name="differential_drive_controller" filename="libgazebo_ros_diff_drive.so">
-      <ros>
-        <remapping>cmd_vel:=/cmd_vel</remapping>
-      </ros>
-      <updateRate>50.0</updateRate>
-      <leftJoint>front_left_wheel_joint</leftJoint>
-      <rightJoint>front_right_wheel_joint</rightJoint>
-      <wheelSeparation>0.3</wheelSeparation>
-      <wheelDiameter>0.1</wheelDiameter>
-      <torque>5.0</torque>
-      <commandTopic>/cmd_vel</commandTopic>
-      <odometryTopic>odom</odometryTopic>
-      <odometryFrame>odom</odometryFrame>
-      <robotBaseFrame>base_footprint</robotBaseFrame>
-      <publishTf>true</publishTf>
-      <publishWheelTF>true</publishWheelTF>
+<gazebo reference="lidar_link">
+  <sensor type="ray" name="rplidar_a2_sim">
+    <pose>0 0 0 0 0 0</pose>
+    <visualize>true</visualize>
+    <update_rate>10.0</update_rate>
+    <ray>
+      <scan>
+        <horizontal>
+          <samples>720</samples> <!-- 0.5도 해상도 -->
+          <resolution>1</resolution>
+          <min_angle>-3.1415</min_angle>
+          <max_angle>3.1415</max_angle>
+        </horizontal>
+      </scan>
+      <range>
+        <min>0.15</min>
+        <max>12.0</max>
+        <resolution>0.01</resolution>
+      </range>
+      <noise>
+        <type>gaussian</type>
+        <mean>0.0</mean>
+        <stddev>0.01</stddev>
+      </noise>
+    </ray>
+    <plugin name="gazebo_ros_laser_controller" filename="libgazebo_ros_laser.so">
+      <topicName>/scan</topicName>
+      <frameName>lidar_link</frameName>
     </plugin>
-  </gazebo>
+  </sensor>
+</gazebo>
+
+<gazebo>
+  <plugin name="gazebo_ros_control" filename="libgazebo_ros_control.so"/>
+</gazebo>
+
+<transmission name="front_left_wheel_trans">
+  <type>transmission_interface/SimpleTransmission</type>
+  <joint name="front_left_wheel_joint">
+    <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
+  </joint>
+  <actuator name="front_left_motor">
+    <mechanicalReduction>1.0</mechanicalReduction>
+  </actuator>
+</transmission>
+
+<transmission name="front_right_wheel_trans">
+  <type>transmission_interface/SimpleTransmission</type>
+  <joint name="front_right_wheel_joint">
+    <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
+  </joint>
+  <actuator name="front_right_motor">
+    <mechanicalReduction>1.0</mechanicalReduction>
+  </actuator>
+</transmission>
 
 </robot>

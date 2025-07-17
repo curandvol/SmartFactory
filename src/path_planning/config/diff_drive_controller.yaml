@@ -1,0 +1,22 @@
+diff_drive_controller:
+  type: "diff_drive_controller/DiffDriveController"
+  left_wheel: front_left_wheel_joint
+  right_wheel: front_right_wheel_joint
+  wheel_separation: 0.3
+  wheel_radius: 0.05
+  base_frame_id: base_footprint
+  odom_frame_id: odom
+  publish_rate: 50
+  cmd_vel_timeout: 0.5
+  enable_odom_tf: true
+
+gazebo_ros_control:
+  pid_gains:
+    front_left_wheel_joint:
+      p: 10.0
+      i: 0.0
+      d: 0.0
+    front_right_wheel_joint:
+      p: 10.0
+      i: 0.0
+      d: 0.0
