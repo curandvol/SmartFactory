@@ -43,9 +43,9 @@
     <!-- 추가: pgm+grid 변환용 파라미터-->
     <param name="pgm_path"       value="$(find path_planning)/maps/Factory/Factory.pgm"/>
     <param name="map_yaml"       value="$(find path_planning)/maps/Factory/Factory.yaml"/>
-    <param name="robot_width"    value="0.55"/>
+    <param name="robot_width"    value="0.30"/>
     <param name="safety_margin"  value="0.05"/>
-    <param name="wall_thresh"    value="210"/>
+    <param name="wall_thresh"    value="250"/>
   </node>
   <!-- 8) Robot 1 -->
   <group ns="robot_1">
