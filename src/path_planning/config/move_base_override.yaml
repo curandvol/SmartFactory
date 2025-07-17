@@ -1,0 +1,18 @@
+# move_base_override.yaml
+# ─────────────────────────────────────────
+# move_base가 기본으로 쓰는 프레임을 override 합니다.
+
+# 글로벌 플래너에서 사용하는 프레임
+global_frame: map
+robot_base_frame: robot_1/base_footprint
+
+# 글로벌 Costmap 설정
+global_costmap:
+  global_frame: map
+  robot_base_frame: robot_1/base_footprint
+
+# 로컬 Costmap 설정
+local_costmap:
+  global_frame: map
+  robot_base_frame: robot_1/base_footprint
+
