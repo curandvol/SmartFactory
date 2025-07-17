@@ -55,7 +55,7 @@ def load_grid():
         origin = info.get('origin', [0.0, 0.0, 0.0])
         rw = rospy.get_param("~robot_width", 0.55)
         sm = rospy.get_param("~safety_margin", 0.05)
-        thresh = rospy.get_param("~wall_thresh", 210)
+        thresh = rospy.get_param("~wall_thresh", 250)
         cell_m = rw/2 + sm
         pix_per_cell = cell_m / res
         h = max(1, int(img.shape[0] / pix_per_cell))
@@ -155,12 +155,27 @@ def goal_callback(msg, args):
         rospy.logerr(f"Unknown goal: {task_name}")
         return
     # 매 초마다 로봇의 위치를 저장하고, 현재 로봇의 위치를 시작점으로 계산해 도착지점을 계산
-    start = find_current_grid(tf_listener, f"{robot_name}/base_link")
+    # 1) TF에서 로봇 현재 위치(x,y) 읽어오기
+    try:
+        trans, _ = tf_listener.lookupTransform("map",
+                                               f"{robot_name}/base_link",
+                                               rospy.Time(0))
+    except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException) as e:
+        rospy.logwarn(f"[{robot_name}] TF lookup failed: {e}")
+        return
+
+    # 2) world → grid 변환
+    start = world_to_grid(trans[0], trans[1])
+
+    # 3) 디버그 출력 (world 좌표, grid 인덱스, 그리드 값)
+    rospy.loginfo(f"[{robot_name}] Start world=({trans[0]:.2f},{trans[1]:.2f}) → "
+                  f"grid=({start[0]},{start[1]}), value={grid[start]}")
     if not start:
         rospy.logerr(f"Invalid Start for {robot_name} : {start}")
         return
     LAST_POSITIONS[robot_name] = start
     goal = world_to_grid(*TASK_POSITIONS[task_name])
+    
     if not start:
         rospy.logerr(f"Invalid start for {robot_name}: {start}")
         return
