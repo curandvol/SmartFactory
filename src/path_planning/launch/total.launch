@@ -1,98 +1,73 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
-  <!--────────────────────────────────────────────────────────-->
-  <!-- 1) 파라미터 및 시뮬레이션 설정 -->
-  <arg  name="model"           default="burger"/>
-  <arg  name="world_name"      default="$(env HOME)/SmartFactory/src/gazebo/my_factory.world"/>
-  <arg  name="robot1_init_x"   default="-3.408"/>
-  <arg  name="robot1_init_y"   default="-4.407"/>
-  <arg  name="robot1_init_yaw" default="-0.710"/>
-  <param name="use_sim_time"   value="true"/>
+  <!-- 1) 기본 인자 및 시뮬레이션 설정 -->
+  <arg name="model"        default="burger"/>
+  <arg name="world"        default="$(env HOME)/SmartFactory/src/gazebo/my_factory.world"/>
+  <arg name="map_center_x" default="0.499"/>
+  <arg name="map_center_y" default="-2.269"/>
+  <arg name="pgm_path"     default="$(find path_planning)/maps/Factory/Factory.pgm"/>
+  <arg name="map_yaml"     default="$(find path_planning)/maps/Factory/Factory.yaml"/>
+  <param name="use_sim_time" value="true"/>
 
-  <!--────────────────────────────────────────────────────────-->
-  <!-- 2) Gazebo 빈 월드 실행 -->
+  <!-- 2) Gazebo 빈 월드 (Factory 맵) -->
   <include file="$(find gazebo_ros)/launch/empty_world.launch">
-    <arg name="world_name" value="$(arg world_name)"/>
+    <arg name="world_name" value="$(arg world)"/>
     <arg name="gui"        value="true"/>
+    <arg name="use_sim_time" value="true"/>
   </include>
 
-  <!--────────────────────────────────────────────────────────-->
-  <!-- 3) map_server: Factory 맵 로드 -->
+  <!-- 3) map_server + goals 로드 -->
   <node pkg="map_server" type="map_server" name="map_server" output="screen"
-        args="$(find path_planning)/maps/Factory/Factory.yaml"/>
-
-  <!--────────────────────────────────────────────────────────-->
-  <!-- 4) 중앙 Path Planner -->
-  <node pkg="path_planning" type="path_planner_node.py" name="path_planner" output="screen">
-    <param name="pgm_path"      value="$(find path_planning)/maps/Factory/Factory.pgm"/>
-    <param name="map_yaml"      value="$(find path_planning)/maps/Factory/Factory.yaml"/>
-    <param name="robot_width"   value="0.30"/>
-    <param name="safety_margin" value="0.05"/>
-    <param name="wall_thresh"   value="250"/>
-  </node>
-
-  <!--────────────────────────────────────────────────────────-->
-  <!-- 5) 목표(Goals) 로드 -->
+        args="$(arg map_yaml)"/>
   <rosparam file="$(find path_planning)/goals/Factory_goals.yaml" command="load"/>
 
-  <!--────────────────────────────────────────────────────────-->
-  <!-- 6) map → odom static TF (AMCL과 costmap 연결) -->
+  <!-- 4) static TF: map → odom 초기화 -->
   <node pkg="tf" type="static_transform_publisher" name="map_to_odom" output="screen"
-        args="
-          $(arg robot1_init_x)
-          $(arg robot1_init_y)
-          0
-          0 0 $(arg robot1_init_yaw)
-          map
-          odom
-          100
-        "/>
+        args="-3.408 -4.407 0 0 0 -0.710 map odom 100"/>
 
-  <!--────────────────────────────────────────────────────────-->
-  <!-- 7) URDF 파라미터 (스폰용) -->
+  <!-- 5) URDF 로딩 + 스폰 -->
   <param name="robot_description"
-         command="$(find xacro)/xacro '$(find turtlebot3_description)/urdf/turtlebot3_$(arg model).urdf.xacro'"/>
-
-  <!--────────────────────────────────────────────────────────-->
-  <!-- 8) robot_1 스폰 -->
-  <!-- -reference_frame를 제거하여 TF lookup 실패 방지
-       gazebo_ros spawn_model은 tf를 사용해 초기 위치를 계산합니다 :contentReference[oaicite:0]{index=0} -->
+         command="$(find xacro)/xacro $(find turtlebot3_description)/urdf/turtlebot3_$(arg model).urdf.xacro"/>
   <node pkg="gazebo_ros" type="spawn_model" name="spawn_urdf" output="screen"
-        launch-prefix="bash -c 'sleep 5; exec $0 $@'" 
-        args="
-          -param robot_description
-          -urdf
-          -model robot_1
-          -robot_namespace /robot_1
-          -x $(arg robot1_init_x)
-          -y $(arg robot1_init_y)
-          -z 0.1
-          -Y $(arg robot1_init_yaw)
-        "/>
+        launch-prefix="bash -c 'sleep 5; exec $0 $@'"
+        args="-param robot_description
+              -urdf
+              -model robot_1
+              -robot_namespace /robot_1
+              -reference_frame map
+              -x -3.408 -y -4.407 -z 0.1 -Y -0.710"/>
 
-  <!--────────────────────────────────────────────────────────-->
-  <!-- 9) robot_1 네임스페이스: URDF → TF → AMCL → move_base -->
+  <!-- 6) Solo Planner (grid 중앙, PGM/YAML 전달) -->
+  <node pkg="path_planning" type="solo_path_planner_node.py" name="path_planner" output="screen">
+    <param name="map_center_x" value="$(arg map_center_x)"/>
+    <param name="map_center_y" value="$(arg map_center_y)"/>
+    <param name="pgm_path"     value="$(arg pgm_path)"/>
+    <param name="map_yaml"     value="$(arg map_yaml)"/>
+  </node>
+
+  <!-- 7) robot_1 네임스페이스: TF→AMCL→Path Follower만 -->
   <group ns="robot_1">
-    <!-- 9.1) robot_state_publisher: URDF 에 정의된 base_footprint→base_link 변환 포함 -->
-    <param name="robot_description"
-           command="$(find xacro)/xacro '$(find turtlebot3_description)/urdf/turtlebot3_$(arg model).urdf.xacro'"/>
-    <node pkg="robot_state_publisher" type="robot_state_publisher"
-          name="robot_state_publisher" output="screen"/>
+    <!-- 7.1) robot_state_publisher -->
+    <node pkg="robot_state_publisher" type="robot_state_publisher" name="state_pub" output="screen"/>
 
-    <!-- 9.2) AMCL: map→odom→base_footprint TF 체인을 사용 -->
+    <!-- 7.2) AMCL (scan 구독), base_frame_id 수정 -->
     <node pkg="amcl" type="amcl" name="amcl" output="screen">
       <param name="odom_frame_id"   value="odom"/>
       <param name="base_frame_id"   value="base_footprint"/>
       <param name="global_frame_id" value="map"/>
       <param name="use_map_topic"   value="true"/>
+      <remap from="scan" to="scan"/>
+      <remap from="tf" to="/tf"/>
+      <remap from="tf_static" to="/tf_static"/>
     </node>
 
-    <!-- 9.3) move_base: 기본 costmap 구성 -->
-    <include file="$(find turtlebot3_navigation)/launch/move_base.launch"/>
+    <!-- 7.3) Path Follower (절대 cmd_vel 퍼블리시 유지) -->
+    <node pkg="path_planning" type="path_follower_node.py" name="path_follower" output="screen">
+      <param name="robot_id" value="robot_1"/>
+    </node>
   </group>
 
-  <!--────────────────────────────────────────────────────────-->
-  <!-- 10) RViz 전체 시각화 -->
+  <!-- 8) RViz -->
   <node pkg="rviz" type="rviz" name="rviz" output="screen"
         args="-d $(find path_planning)/rviz/it2_last.rviz"/>
 </launch>
