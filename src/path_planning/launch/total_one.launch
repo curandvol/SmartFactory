@@ -1,0 +1,56 @@
+<launch>
+  <!-- 기본 설정 -->
+  <arg name="model" default="burger" />
+  <env name="TURTLEBOT3_MODEL" value="$(arg model)" />
+  <param name="use_sim_time" value="true" />
+
+  <!-- Gazebo 공장 맵 -->
+  <!-- Gazebo에서 my_factory.world 띄우기 -->
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="world_name" value="$(env HOME)/SmartFactory/src/gazebo/my_factory.world" />
+    <arg name="gui" value="true" />
+  </include>
+
+  <!-- 맵 서버 -->
+  <node name="map_server" pkg="map_server" type="map_server"
+        args="/home/leekwansuk/SmartFactory/src/gazebo/my_factory_map.yaml" />
+
+  <!-- TurtleBot3 URDF 로딩 -->
+  <param name="robot_description"
+         command="$(find xacro)/xacro '$(find turtlebot3_description)/urdf/turtlebot3_$(arg model).urdf.xacro'" />
+
+  <!-- Gazebo에 로봇 스폰 -->
+  <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" output="screen"
+        args="-param robot_description -urdf -model turtlebot3 -x 0 -y 0 -z 0.1" />
+
+  <!-- 로봇 상태 퍼블리셔 -->
+  <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" />
+
+
+  <!-- AMCL -->
+  <node pkg="amcl" type="amcl" name="amcl" output="screen">
+    <param name="odom_frame_id" value="odom" />
+    <param name="base_frame_id" value="base_footprint" />
+    <param name="global_frame_id" value="map" />
+    <param name="use_map_topic" value="true" />
+    <param name="update_min_d" value="0.2" />
+    <param name="update_min_a" value="0.2" />
+    <param name="min_particles" value="500" />
+    <param name="max_particles" value="2000" />
+    <param name="kld_err" value="0.05" />
+    <param name="kld_z" value="0.99" />
+    <param name="transform_tolerance" value="0.5" />
+    <param name="tf_broadcast" value="true" />
+    <param name="odom_model_type" value="diff" />
+    <param name="resample_interval" value="1" />
+    <remap from="scan" to="scan" />
+  </node>
+
+  <!-- move_base -->
+  <include file="$(find turtlebot3_navigation)/launch/move_base.launch" />
+
+  <!-- RViz -->
+  <node name="rviz" pkg="rviz" type="rviz"
+        args="-d $(find turtlebot3_navigation)/rviz/turtlebot3_navigation.rviz" />
+</launch>
+
