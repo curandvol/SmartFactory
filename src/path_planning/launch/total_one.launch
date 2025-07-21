@@ -1,33 +1,33 @@
 <launch>
-  <!-- 기본 설정 -->
+  <!-- 터틀봇 모델 설정 -->
   <arg name="model" default="burger" />
   <env name="TURTLEBOT3_MODEL" value="$(arg model)" />
+
+  <!-- 시뮬레이터 시간 사용 -->
   <param name="use_sim_time" value="true" />
 
-  <!-- Gazebo 공장 맵 -->
-  <!-- Gazebo에서 my_factory.world 띄우기 -->
+  <!-- Gazebo에서 공장 맵 띄우기 -->
   <include file="$(find gazebo_ros)/launch/empty_world.launch">
     <arg name="world_name" value="$(env HOME)/SmartFactory/src/gazebo/my_factory.world" />
     <arg name="gui" value="true" />
   </include>
 
-  <!-- 맵 서버 -->
+  <!-- 맵 서버 실행 -->
   <node name="map_server" pkg="map_server" type="map_server"
-        args="/home/leekwansuk/SmartFactory/src/gazebo/my_factory_map.yaml" />
+        args="$(env HOME)/SmartFactory/src/gazebo/my_factory_map.yaml" />
 
-  <!-- TurtleBot3 URDF 로딩 -->
+  <!-- URDF 로드 -->
   <param name="robot_description"
          command="$(find xacro)/xacro '$(find turtlebot3_description)/urdf/turtlebot3_$(arg model).urdf.xacro'" />
 
-  <!-- Gazebo에 로봇 스폰 -->
+  <!-- Gazebo에 TurtleBot3 스폰 -->
   <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" output="screen"
-        args="-param robot_description -urdf -model turtlebot3 -x 0 -y 0 -z 0.1" />
+        args="-param robot_description -urdf -model robot_1 -x 0 -y 0 -z 0.1" />
 
   <!-- 로봇 상태 퍼블리셔 -->
   <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" />
 
-
-  <!-- AMCL -->
+  <!-- AMCL 로컬라이저 -->
   <node pkg="amcl" type="amcl" name="amcl" output="screen">
     <param name="odom_frame_id" value="odom" />
     <param name="base_frame_id" value="base_footprint" />
@@ -43,14 +43,30 @@
     <param name="tf_broadcast" value="true" />
     <param name="odom_model_type" value="diff" />
     <param name="resample_interval" value="1" />
+    <param name="laser_frame_id" value="base_scan" />
     <remap from="scan" to="scan" />
   </node>
 
   <!-- move_base -->
   <include file="$(find turtlebot3_navigation)/launch/move_base.launch" />
+  <rosparam file="$(find path_planning)/goals/Factory_goals.yaml" command="load" param="goals" />
+  <!-- 자율주행 경로 생성 노드 -->
+  <!-- 자율주행 경로 생성 노드 -->
+  <node pkg="path_planning" type="solo_path_planner_node.py" name="solo_path_planner" output="screen">
+    <param name="pgm_path" value="$(env HOME)/SmartFactory/src/gazebo/my_factory_map.pgm" />
+    <param name="map_yaml" value="$(env HOME)/SmartFactory/src/gazebo/my_factory_map.yaml" />
+    <param name="grid_path" value="$(env HOME)/SmartFactory/src/gazebo/grid.npy" />
+    <param name="map_center_x" value="1.5" />
+    <param name="map_center_y" value="1.5" />
+  </node>
+
+
+  <!-- 경로 추종 노드 -->
+  <node pkg="path_planning" type="path_follower_node.py" name="path_follower" output="screen">
+    <param name="robot_id" value="robot_1" />
+  </node>
 
   <!-- RViz -->
   <node name="rviz" pkg="rviz" type="rviz"
         args="-d $(find turtlebot3_navigation)/rviz/turtlebot3_navigation.rviz" />
 </launch>
-

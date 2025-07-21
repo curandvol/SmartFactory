@@ -27,15 +27,17 @@
 
   <!-- 5) URDF 로딩 + 스폰 -->
   <param name="robot_description"
-         command="$(find xacro)/xacro $(find turtlebot3_description)/urdf/turtlebot3_$(arg model).urdf.xacro"/>
+       command="$(find xacro)/xacro $(find turtlebot3_description)/urdf/turtlebot3_$(arg model).urdf.xacro prefix:=robot_1_" />
+
+
   <node pkg="gazebo_ros" type="spawn_model" name="spawn_urdf" output="screen"
-        launch-prefix="bash -c 'sleep 5; exec $0 $@'"
-        args="-param robot_description
-              -urdf
-              -model robot_1
-              -robot_namespace /robot_1
-              -reference_frame map
-              -x -3.408 -y -4.407 -z 0.1 -Y -0.710"/>
+      launch-prefix="bash -c 'sleep 5; exec $0 $@'"
+      args="-param robot_description
+            -urdf
+            -model robot_1
+            -robot_namespace /robot_1
+            -reference_frame map
+            -x -3.408 -y -4.407 -z 0.1 -Y -0.710"/>
 
   <!-- 6) Solo Planner (grid 중앙, PGM/YAML 전달) -->
   <node pkg="path_planning" type="solo_path_planner_node.py" name="path_planner" output="screen">
@@ -47,9 +49,13 @@
 
   <!-- 7) robot_1 네임스페이스: TF→AMCL→Path Follower만 -->
   <group ns="robot_1">
-    <!-- 7.1) robot_state_publisher -->
-    <node pkg="robot_state_publisher" type="robot_state_publisher" name="state_pub" output="screen"/>
+   <!-- 7.0) joint_state_publisher (가제보에서 퍼블리시 안 할 경우 필수) -->
+    <node pkg="joint_state_publisher_gui" type="joint_state_publisher_gui" name="joint_state_publisher" output="screen"/>
 
+   <!-- 7.1) robot_state_publisher -->
+    <node pkg="robot_state_publisher" type="robot_state_publisher" name="state_pub" output="screen">
+     <param name="tf_prefix" value="robot_1"/>
+    </node>
     <!-- 7.2) AMCL (scan 구독), base_frame_id 수정 -->
     <node pkg="amcl" type="amcl" name="amcl" output="screen">
       <param name="odom_frame_id"   value="odom"/>
