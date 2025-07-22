@@ -32,8 +32,8 @@ class PathFollower:
             [q.x, q.y, q.z, q.w])
 
     def timer_callback(self, event):
-        # 준비 상태 확인
         if self.x is None or not self.current_path or self.current_index >= len(self.current_path):
+            rospy.loginfo(f"[{self.robot_id}] 정지 조건 - 위치 없음 또는 경로 없음 또는 끝 도달")
             self.publish_cmd(0.0, 0.0)
             return
 
@@ -44,13 +44,16 @@ class PathFollower:
         err_yaw = math.atan2(math.sin(target_yaw - self.theta),
                              math.cos(target_yaw - self.theta))
 
-        if dist < 0.05:
+        rospy.loginfo(f"[{self.robot_id}] 현재 인덱스 {self.current_index}/{len(self.current_path)}, dist={dist:.3f}")
+
+        if dist < 0.05:  # 너무 가까우면 다음으로 넘김
+            rospy.loginfo(f"[{self.robot_id}] 가까움 → 다음 인덱스로")
             self.current_index += 1
             return
 
-        # 비례 이득
         lin = max(min(0.3 * dist, 0.5), -0.5)
         ang = max(min(1.0 * err_yaw, 1.0), -1.0)
+        rospy.loginfo(f"[{self.robot_id}] ➡️ lin={lin:.3f}, ang={ang:.3f}")
         self.publish_cmd(lin, ang)
 
     def publish_cmd(self, lin, ang):

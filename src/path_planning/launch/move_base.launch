@@ -1,0 +1,33 @@
+<launch>
+  <arg name="namespace" default="robot_1" />
+  <arg name="model" default="$(env TURTLEBOT3_MODEL)" />
+  <arg name="cmd_vel_topic" default="/cmd_vel" />
+  <arg name="odom_topic" default="odom" />
+  <arg name="move_forward_only" default="false" />
+
+  <group ns="$(arg namespace)">
+    <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen">
+      <!-- 필수 프레임 설정 -->
+      <param name="global_costmap/global_frame" value="map"/>
+      <param name="global_costmap/robot_base_frame" value="base_link"/>
+      <param name="local_costmap/global_frame" value="odom"/>
+      <param name="local_costmap/robot_base_frame" value="base_link"/>
+
+      <!-- costmap params (TurtleBot 기본 costmap_common_params 제외) -->
+      <rosparam file="$(find path_planning)/config/local_costmap_params_robot_1.yaml" command="load" ns="local_costmap"/>
+      <rosparam file="$(find path_planning)/config/global_costmap_params_robot_1.yaml" command="load" ns="global_costmap"/>
+
+      <!-- planner params -->
+      <rosparam file="$(find turtlebot3_navigation)/param/move_base_params.yaml" command="load"/>
+      <rosparam file="$(find turtlebot3_navigation)/param/dwa_local_planner_params_$(arg model).yaml" command="load"/>
+
+      <!-- topic remap -->
+      <remap from="cmd_vel" to="$(arg cmd_vel_topic)"/>
+      <remap from="odom" to="$(arg odom_topic)"/>
+
+      <!-- 옵션 설정 -->
+      <param if="$(arg move_forward_only)" name="DWAPlannerROS/min_vel_x" value="0.0"/>
+    </node>
+  </group>
+</launch>
+
